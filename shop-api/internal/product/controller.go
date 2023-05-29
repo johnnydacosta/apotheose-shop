@@ -47,11 +47,18 @@ func (p *ProductController) FindById(c *gin.Context) {
 
 func (p *ProductController) Create(c *gin.Context) {
 	id := uuid.New().String()
+	var form ProductForm
+
+	if err := c.BindJSON(&form); err != nil {
+		c.JSON(http.StatusBadRequest, "Bad request")
+		return
+	}
+
 	product := Product{
 		ID:       id,
-		Title:    "New Product",
-		Price:    20,
-		Quantity: 5,
+		Title:    form.Title,
+		Price:    form.Price,
+		Quantity: form.Quantity,
 	}
 
 	IN_MEMORY_DB[id] = product
@@ -60,8 +67,32 @@ func (p *ProductController) Create(c *gin.Context) {
 }
 
 func (p *ProductController) Update(c *gin.Context) {
-	// TODO update the name
-	c.JSON(http.StatusOK, "product updated")
+
+	id, exist := c.Params.Get("id")
+
+	if exist == false {
+		c.JSON(http.StatusBadRequest, "No id provided")
+		return
+	}
+
+	if p, ok := IN_MEMORY_DB[id]; ok {
+		var form ProductForm
+
+		if err := c.BindJSON(&form); err != nil {
+			c.JSON(http.StatusBadRequest, "Bad request")
+			return
+		}
+
+		p.Title = form.Title
+		p.Price = form.Price
+		p.Quantity = form.Quantity
+
+		IN_MEMORY_DB[id] = p
+		c.JSON(http.StatusOK, p)
+		return
+	}
+
+	c.JSON(http.StatusNotFound, "Product not found")
 }
 
 func (p *ProductController) DeleteById(c *gin.Context) {
